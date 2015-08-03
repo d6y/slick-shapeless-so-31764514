@@ -1,14 +1,27 @@
-WIP exploring http://stackoverflow.com/questions/31764514/using-slick-with-shapeless-hlist
+# WIP exploring http://stackoverflow.com/questions/31764514/using-slick-with-shapeless-hlist
 
-Current status:
+## Current status
 
 - explicitly typing the `def *` projection for shapeless HLists
 - using `<>` to define functions to go between tuples/shapeless HLists
 - can insert and query using shapeless HList
 
-Goals:
+
+## Goals
 
 - implicits to genereate the `ProvenShape` for the type given by `extends Table[T]` where `T <: HList`.
+
+i.e., to be able to just mention the HList once in the `Table`, and then give the order in the `def *`:
+
+``` scala
+class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
+  def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
+  def email = column[String]( "email" )
+  def * = (id, email)
+}
+```
+
+## Running the code
 
 To run using an in-memory database:
 
