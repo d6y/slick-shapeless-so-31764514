@@ -7,19 +7,16 @@ object Example extends App {
   import slick.driver.H2Driver.api._
 
   // --
-  
+
   import shapeless._
   import syntax.std.tuple._
-  import ops.hlist.Tupler
-  
-  def tuple[H <: HList](h: H)(implicit tupler: Tupler[H]) = tupler(h)
 
   // --
-  
+
   class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
     def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
     def email = column[String]( "email" )
-    
+
     /** The * projection of the table used as default for queries and inserts.
       * Should include all columns as a tuple, HList or custom shape and optionally
       * map them to a custom entity type using the <> operator.
@@ -28,8 +25,8 @@ object Example extends App {
       * type in * and the client-side type without `Column` in the table's type
       * parameter. */
     def * : slick.lifted.ProvenShape[Long :: String :: HNil] =
-      (id, email) <>[ Long :: String :: HNil, (Long,String) ] (p => p.productElements, h => Some(tuple(h)) )
-   
+      (id, email) <>[ Long :: String :: HNil, (Long,String) ] (p => p.productElements, h => Some(h.tupled) )
+
   }
 
   lazy val users = TableQuery[Users]
