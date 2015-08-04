@@ -13,6 +13,8 @@ object Example extends App {
 
   // --
 
+  import slick.lifted.ProvenShape
+
   class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
     def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
     def email = column[String]( "email" )
@@ -24,9 +26,15 @@ object Example extends App {
       * there is a `Shape` available for translating between the `Column`-based
       * type in * and the client-side type without `Column` in the table's type
       * parameter. */
-    def * : slick.lifted.ProvenShape[Long :: String :: HNil] =
-      (id, email) <>[ Long :: String :: HNil, (Long,String) ] (p => p.productElements, h => Some(h.tupled) )
+    // Step 1:
+    // def * : ProvenShape[Long :: String :: HNil] =
+    //   (id, email) <>[ Long :: String :: HNil, (Long,String) ] (p => p.productElements, h => Some(h.tupled) )
 
+    // Step 2:
+    implicit def tuple2hlist(t: (Rep[Long], Rep[String])): ProvenShape[Long :: String :: HNil] =
+      t <>[Long :: String :: HNil, (Long,String)] (p => p.productElements, h => Some(h.tupled))
+
+    def * = (id, email)
   }
 
   lazy val users = TableQuery[Users]
