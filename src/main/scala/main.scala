@@ -11,30 +11,60 @@ object Example extends App {
   import shapeless._
   import syntax.std.tuple._
 
-  // --
+  import scala.reflect.ClassTag
+  import slick.lifted.{ProvenShape, MappedScalaProductShape}
 
-  import slick.lifted.ProvenShape
+/*
+abstract class MappedProductShape[Level <: ShapeLevel, C, M <: C, U <: C, P <: C] extends ProductNodeShape[Level, C, M, U, P] {
+  override def toNode(value: Mixed) = TypeMapping(super.toNode(value), MappedScalaType.Mapper(toBase, toMapped, None), classTag)
+  def toBase(v: Any) = new ProductWrapper(getIterator(v.asInstanceOf[C]).toIndexedSeq)
+  def toMapped(v: Any) = buildValue(TupleSupport.buildIndexedSeq(v.asInstanceOf[Product]))
+  def classTag: ClassTag[U]
+}
 
-  class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
+override def getIterator(value: C) = value.productIterator
+  def getElement(value: C, idx: Int) = value.productElement(idx)
+}
+*/
+  final class HListShape[
+    Level <: ShapeLevel, M <: HList, U <: HList : ClassTag, P <: HList]
+    (val shapes: Seq[Shape[_, _, _, _]]) extends MappedProductShape[Level, HList, M, U, P] {
+     def buildValue(elems: IndexedSeq[Any]) = elems.foldRight(HNil: HList)(_ :: _)
+     def copy(shapes: Seq[Shape[_ <: ShapeLevel, _, _, _]]) = new HListShape(shapes)
+
+    def classTag: ClassTag[U] = implicitly
+
+    def runtimeList(l: HList): List[Any] = {
+        def loop(l: HList, acc: List[Any]): List[Any] = l match {
+          case HNil => acc
+          case hd :: tl => loop(tl, hd :: acc)
+        }
+        loop(l, Nil).reverse
+      }
+
+    override def getIterator(value: HList) = runtimeList(value).iterator
+    def getElement(value: HList, idx: Int) = runtimeList(value)(idx)
+   }
+
+   implicit def hnilShape[Level <: ShapeLevel]: HListShape[Level, HNil, HNil, HNil] =
+     new HListShape[Level, HNil, HNil, HNil](Nil)
+
+   implicit def hconsShape[Level <: ShapeLevel, M1, M2 <: HList, U1, U2 <: HList, P1, P2 <: HList]
+     (implicit s1: Shape[_ <: Level, M1, U1, P1], s2: HListShape[_ <: Level, M2, U2, P2]):
+      HListShape[Level, M1 :: M2, U1 :: U2, P1 :: P2] =
+        new HListShape[Level, M1 :: M2, U1 :: U2, P1 :: P2](s1 +: s2.shapes)
+
+
+
+  case class User(id: Long, email: String)
+
+  val userGen = Generic[User]
+
+  class Users(tag: Tag) extends Table[User](tag, "users") {
     def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
-    def email = column[String]( "email" )
+    def email = column[String]("email")
 
-    /** The * projection of the table used as default for queries and inserts.
-      * Should include all columns as a tuple, HList or custom shape and optionally
-      * map them to a custom entity type using the <> operator.
-      * The `ProvenShape` return type ensures that
-      * there is a `Shape` available for translating between the `Column`-based
-      * type in * and the client-side type without `Column` in the table's type
-      * parameter. */
-    // Step 1:
-    // def * : ProvenShape[Long :: String :: HNil] =
-    //   (id, email) <>[ Long :: String :: HNil, (Long,String) ] (p => p.productElements, h => Some(h.tupled) )
-
-    // Step 2:
-    implicit def tuple2hlist(t: (Rep[Long], Rep[String])): ProvenShape[Long :: String :: HNil] =
-      t <>[Long :: String :: HNil, (Long,String)] (p => p.productElements, h => Some(h.tupled))
-
-    def * = (id, email)
+    def * = (id :: email :: HNil) <> ((hlist: Long :: String :: HNil) => userGen.from(hlist), (user: User) => Some(userGen.to(user)))
   }
 
   lazy val users = TableQuery[Users]
@@ -42,7 +72,7 @@ object Example extends App {
   // Create and schema and populate the DB:
   val setup = DBIO.seq(
     (users.schema).create,
-    users += 1 :: "bob@example.org" :: HNil
+    users += User(1L, "bob@example.org")
   )
   val db = Database.forConfig("h2")
   Await.result(db.run(setup), 2 seconds)
