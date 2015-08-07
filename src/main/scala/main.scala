@@ -56,15 +56,12 @@ override def getIterator(value: C) = value.productIterator
 
 
 
-  case class User(id: Long, email: String)
 
-  val userGen = Generic[User]
-
-  class Users(tag: Tag) extends Table[User](tag, "users") {
+  class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
     def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
     def email = column[String]("email")
 
-    def * = (id :: email :: HNil) <> ((hlist: Long :: String :: HNil) => userGen.from(hlist), (user: User) => Some(userGen.to(user)))
+    def * = (id :: email :: HNil)
   }
 
   lazy val users = TableQuery[Users]
@@ -72,7 +69,7 @@ override def getIterator(value: C) = value.productIterator
   // Create and schema and populate the DB:
   val setup = DBIO.seq(
     (users.schema).create,
-    users += User(1L, "bob@example.org")
+    users += 1L :: "bob@example.org" :: HNil
   )
   val db = Database.forConfig("h2")
   Await.result(db.run(setup), 2 seconds)
