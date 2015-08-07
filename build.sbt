@@ -2,12 +2,15 @@ name := "slick-so-31764514"
 
 scalaVersion := "2.11.7"
 
-libraryDependencies ++= slick ++ shapeless ++ h2 ++ logging
+resolvers += "Underscore Bintray" at "https://dl.bintray.com/underscoreio/libraries"
+
+libraryDependencies ++= slick ++ shapeless ++ gloop ++ h2 ++ logging
 
 lazy val slick     = Seq("com.typesafe.slick" %% "slick"     % "3.0.0")
 lazy val shapeless = Seq("com.chuusai"        %% "shapeless" % "2.2.5")
 lazy val h2        = Seq("com.h2database"      % "h2"        % "1.4.185")
 lazy val logging   = Seq("ch.qos.logback"      % "logback-classic" % "1.1.2")
+lazy val gloop     = Seq("io.underscore"      %% "slick-shapeless" % "0.1.0")
 
 scalacOptions ++= Seq(
   "-deprecation",
