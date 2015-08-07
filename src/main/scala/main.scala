@@ -5,27 +5,12 @@ import scala.concurrent.duration._
 object Example extends App {
 
   import slick.driver.H2Driver.api._
-
-  // --
-
   import shapeless._
   import syntax.std.tuple._
 
   import scala.reflect.ClassTag
-  import slick.lifted.{ProvenShape, MappedScalaProductShape}
+  import slick.lifted.MappedScalaProductShape
 
-/*
-abstract class MappedProductShape[Level <: ShapeLevel, C, M <: C, U <: C, P <: C] extends ProductNodeShape[Level, C, M, U, P] {
-  override def toNode(value: Mixed) = TypeMapping(super.toNode(value), MappedScalaType.Mapper(toBase, toMapped, None), classTag)
-  def toBase(v: Any) = new ProductWrapper(getIterator(v.asInstanceOf[C]).toIndexedSeq)
-  def toMapped(v: Any) = buildValue(TupleSupport.buildIndexedSeq(v.asInstanceOf[Product]))
-  def classTag: ClassTag[U]
-}
-
-override def getIterator(value: C) = value.productIterator
-  def getElement(value: C, idx: Int) = value.productElement(idx)
-}
-*/
   final class HListShape[
     Level <: ShapeLevel, M <: HList, U <: HList : ClassTag, P <: HList]
     (val shapes: Seq[Shape[_, _, _, _]]) extends MappedProductShape[Level, HList, M, U, P] {
@@ -35,7 +20,7 @@ override def getIterator(value: C) = value.productIterator
     def classTag: ClassTag[U] = implicitly
 
     def runtimeList(l: HList): List[Any] = {
-        def loop(l: HList, acc: List[Any]): List[Any] = l match {
+        @scala.annotation.tailrec def loop(l: HList, acc: List[Any]): List[Any] = l match {
           case HNil => acc
           case hd :: tl => loop(tl, hd :: acc)
         }
