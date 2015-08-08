@@ -1,4 +1,4 @@
-name := "slick-so-31764514"
+name := "slickless-so-31764514"
 
 scalaVersion := "2.11.7"
 
@@ -10,7 +10,7 @@ lazy val slick          = Seq("com.typesafe.slick" %% "slick"     % "3.0.0")
 lazy val shapeless      = Seq("com.chuusai"        %% "shapeless" % "2.2.5")
 lazy val h2             = Seq("com.h2database"      % "h2"        % "1.4.185")
 lazy val logging        = Seq("ch.qos.logback"      % "logback-classic" % "1.1.2")
-lazy val slickShapeless = Seq("io.underscore"      %% "slick-shapeless" % "0.1.0")
+lazy val slickShapeless = Seq("io.underscore"      %% "slickless" % "0.1.0")
 
 scalacOptions ++= Seq(
   "-deprecation",

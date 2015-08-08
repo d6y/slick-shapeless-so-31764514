@@ -5,12 +5,9 @@ import scala.concurrent.duration._
 object Example extends App {
 
   import slick.driver.H2Driver.api._
-  import shapeless._
-  import syntax.std.tuple._
 
-  import scala.reflect.ClassTag
-  import slick.lifted.MappedScalaProductShape
-  import io.underscore.slick._
+  import shapeless._
+  import slickless._
 
   class Users(tag: Tag) extends Table[Long :: String :: HNil](tag, "users") {
     def id    = column[Long]( "id", O.PrimaryKey, O.AutoInc )
