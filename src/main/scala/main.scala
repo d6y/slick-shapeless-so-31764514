@@ -14,6 +14,10 @@ object Example extends App {
     def email = column[String]("email")
 
     def * = (id :: email :: HNil)
+
+    implicit class AnyOps[A](a: A) {
+      def some: Option[A] = Some(a)
+    }
   }
 
   lazy val users = TableQuery[Users]
@@ -29,6 +33,12 @@ object Example extends App {
   // Query to see what's in the database:
   val result = Await.result(db.run(users.result), 2 seconds)
   println(s"Result of action is: $result")
+
+  // Going to a case class from an HList:
+  case class SomeCaseClass(id: Long, email: String)
+  val gen = Generic[SomeCaseClass]
+  val caseClasses = result.map(gen.from)
+  println(s"As a case class: $caseClasses")
 
   db.close
 }
