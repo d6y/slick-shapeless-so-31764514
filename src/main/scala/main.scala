@@ -40,5 +40,18 @@ object Example extends App {
   val caseClasses = result.map(gen.from)
   println(s"As a case class: $caseClasses")
 
+  // GetResult type class
+  import slick.jdbc.GetResult
+  implicit val getResults: GetResult[SomeCaseClass] =
+    GetResult(r => SomeCaseClass(id = r.nextLong, email = r.nextString))
+
+  // NB: in place of nextLong and nextString we can use r.<< for both
+
+  val plainSql =
+    sql""" select "id", "email" from "users" """.as[SomeCaseClass]
+
+  val plainSqlResults = Await.result(db.run(plainSql), 2 seconds)
+  println(s"Plain SQL GenResult: $plainSqlResults")
+
   db.close
 }
