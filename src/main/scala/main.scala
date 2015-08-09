@@ -41,14 +41,23 @@ object Example extends App {
   println(s"As a case class: $caseClasses")
 
   // GetResult type class
-  import slick.jdbc.GetResult
-  implicit val getResults: GetResult[SomeCaseClass] =
-    GetResult(r => SomeCaseClass(id = r.nextLong, email = r.nextString))
+  import slick.jdbc.{ GetResult, PositionedResult }
 
-  // NB: in place of nextLong and nextString we can use r.<< for both
+  implicit object hnilGetResult extends GetResult[HNil] {
+    def apply(r: PositionedResult) = HNil
+  }
+
+  implicit def hlistConsGetResult[H, T <: HList]
+    (implicit
+      h: GetResult[H],
+      t: GetResult[T]
+    ) =
+      new GetResult[H :: T] {
+        def apply(r: PositionedResult) = r.<<[H] :: t(r)
+      }
 
   val plainSql =
-    sql""" select "id", "email" from "users" """.as[SomeCaseClass]
+    sql""" select "id", "email" from "users" """.as[Long :: String :: HNil]
 
   val plainSqlResults = Await.result(db.run(plainSql), 2 seconds)
   println(s"Plain SQL GenResult: $plainSqlResults")
