@@ -14,10 +14,6 @@ object Example extends App {
     def email = column[String]("email")
 
     def * = (id :: email :: HNil)
-
-    implicit class AnyOps[A](a: A) {
-      def some: Option[A] = Some(a)
-    }
   }
 
   lazy val users = TableQuery[Users]
@@ -61,6 +57,27 @@ object Example extends App {
 
   val plainSqlResults = Await.result(db.run(plainSql), 2 seconds)
   println(s"Plain SQL GenResult: $plainSqlResults")
+
+
+  // Now for case classes
+  case class Contact(id: Long, Email: String)
+  implicit val genContact = Generic[Contact]
+
+  implicit def caseClassGetResult[T,R]
+    (implicit
+      gen:       Generic.Aux[T, R],
+      getResult: GetResult[R]
+    ): GetResult[T] =
+      new GetResult[T] {
+        def apply(r: PositionedResult) = gen.from(getResult(r))
+      }
+
+  val plainSqlCaseClass =
+    sql""" select "id", "email" from "users" """.as[Contact]
+
+  val ccResults = Await.result(db.run(plainSqlCaseClass), 2 seconds)
+  println(s"Plain SQL GenResult for CaseClass: $ccResults")
+
 
   db.close
 }
