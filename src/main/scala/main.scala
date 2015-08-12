@@ -14,10 +14,6 @@ object Example extends App {
     def email = column[String]("email")
 
     def * = (id :: email :: HNil)
-
-    implicit class AnyOps[A](a: A) {
-      def some: Option[A] = Some(a)
-    }
   }
 
   lazy val users = TableQuery[Users]
@@ -39,6 +35,49 @@ object Example extends App {
   val gen = Generic[SomeCaseClass]
   val caseClasses = result.map(gen.from)
   println(s"As a case class: $caseClasses")
+
+  // GetResult type class
+  import slick.jdbc.{ GetResult, PositionedResult }
+
+  implicit object hnilGetResult extends GetResult[HNil] {
+    def apply(r: PositionedResult) = HNil
+  }
+
+  implicit def hlistConsGetResult[H, T <: HList]
+    (implicit
+      h: GetResult[H],
+      t: GetResult[T]
+    ) =
+      new GetResult[H :: T] {
+        def apply(r: PositionedResult) = r.<<[H] :: t(r)
+      }
+
+  val plainSql =
+    sql""" select "id", "email" from "users" """.as[Long :: String :: HNil]
+
+  val plainSqlResults = Await.result(db.run(plainSql), 2 seconds)
+  println(s"Plain SQL GenResult: $plainSqlResults")
+
+
+  // Now for case classes
+  case class Contact(id: Long, Email: String)
+  implicit val genContact = Generic[Contact]
+
+  implicit def caseClassGetResult[T,R]
+    (implicit
+      gen:       Generic.Aux[T, R],
+      getResult: GetResult[R]
+    ): GetResult[T] =
+      new GetResult[T] {
+        def apply(r: PositionedResult) = gen.from(getResult(r))
+      }
+
+  val plainSqlCaseClass =
+    sql""" select "id", "email" from "users" """.as[Contact]
+
+  val ccResults = Await.result(db.run(plainSqlCaseClass), 2 seconds)
+  println(s"Plain SQL GenResult for CaseClass: $ccResults")
+
 
   db.close
 }
